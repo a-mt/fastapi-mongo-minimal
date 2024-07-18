@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  mongo:
+    image: mongo:4.2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "mongo"]
+      timeout: 20s
+      interval: 10s
+      retries: 5
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGODB_NAME: school
+      MONGODB_AUTHSOURCE: admin
+    ports: 
+      - 27017:27017
+    volumes:
+      - ./docker_volumes/mongodb/data:/data/db
+    command: mongod --quiet --logpath /dev/null
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - 8001:8001
+    volumes:
+      - ./src:/usr/src
+    command: ["fastapi", "dev", "main.py", "--host", "0.0.0.0", "--port", "8001"]
